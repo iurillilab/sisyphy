@@ -1,20 +1,22 @@
+"""Code adapted from https://github.com/mjablons1/nidaqmx-continuous-analog-io.
+"""
 import pyqtgraph as pg
 import numpy as np
 
 import nidaqmx as ni
 from nidaqmx import stream_readers
+import time
 
 dev_name = 'Dev1'  # < remember to change to your device name, and channel input names below.
 ai0 = '/ai0'
 
-fs = 2000  # sample rate for input and output.
+fs = 5000  # sample rate for input and output.
 # NOTE: Depending on your hardware sample clock frequency and available dividers some sample rates may not be supported.
-out_freq = 101
 
-frames_per_buffer = 10  # nr of frames fitting into the buffer of each measurement channel.
+frames_per_buffer = 100  # nr of frames fitting into the buffer of each measurement channel.
 # NOTE  With my NI6211 it was necessary to override the default buffer size to prevent under/over run at high sample
 # rates.
-refresh_rate_hz = 10
+refresh_rate_hz = 2
 samples_per_frame = int(fs // refresh_rate_hz)
 
 read_buffer = np.zeros((1, samples_per_frame), dtype=np.float64)
@@ -64,28 +66,7 @@ with ni.Task() as ai_task:
     ao_args = {'min_val': -10,
                'max_val': 10}
 
-    # For some reason read_buffer size is not calculating correctly based on the amount of data we preload the output
-    # with (perhaps because below we fill the read_buffer using a for loop and not in one go?) so we must call out
-    # explicitly:
-    # ao_task.out_stream.output_buf_size = samples_per_frame * frames_per_buffer * NR_OF_CHANNELS
-
-    # ao_task.out_stream.regen_mode = ni.constants.RegenerationMode.DONT_ALLOW_REGENERATION
-    # ao_task.timing.implicit_underflow_behavior = ni.constants.UnderflowBehavior.AUSE_UNTIL_DATA_AVAILABLE # SIC!
-    # Typo in the package.
-    #
-    # NOTE: DONT_ALLOW_REGENERATION prevents repeating of previous frame on output read_buffer underrun so instead of
-    # a warning the script will crash. Its good to block the regeneration during development to ensure we don't get
-    # fooled by this behaviour (the warning on regeneration occurrence alone is confusing if you don't know that
-    # that's the default behaviour). Additionally some NI devices will allow you to pAUSE generation till output
-    # read_buffer data is available again instead of crashing (not supported by my NI6211 though).
-
     reader = stream_readers.AnalogMultiChannelReader(ai_task.in_stream)
-    # writer = stream_writers.AnalogMultiChannelWriter(ao_task.out_stream)
-
-    # fill output read_buffer with data, this should also enable buffered mode
-    # output_frame_generator = sine_generator()
-    # for _ in range(frames_per_buffer):
-    #     writer.write_many_sample(next(output_frame_generator), timeout=1)
 
     ai_task.register_every_n_samples_acquired_into_buffer_event(samples_per_frame, reading_task_callback)
     # ao_task.register_every_n_samples_transferred_from_buffer_event(
