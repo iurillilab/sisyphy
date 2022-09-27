@@ -1,0 +1,5 @@
+numpy
+libusb1
+pyqtgraph
+PyQt5
+nidaqmx
