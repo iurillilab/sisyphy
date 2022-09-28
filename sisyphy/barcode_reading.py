@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 from sisyphy.process_logger import LoggingProcess, TerminableProcess, Process, Event
 from datetime import datetime
+from sisyphy.custom_dataclasses import TimeStampData
+from sisyphy.custom_queue import SaturatingQueue
 
 
 def _find_barcode(barcode_array):
@@ -77,20 +79,12 @@ timebase = np.arange(samples_per_frame) / FS
 
 
 class NiTimeStampProcess(Process):
-    def __init__(self, *args, **kwargs):
-        self.kill_event = Event()
-        self.root = Path(r"C:\Users\SNeurobiology\Documents\Luigi\vr-test\barcode_acq")
-        self.filename = self.root / datetime.now().strftime("%Y%m%d_%H.%M.%S_timestamps.txt")
-        self.file = None
+    def __init__(self, *args, kill_event=None, **kwargs):
+        self.kill_event = kill_event
+        self.data_queue = SaturatingQueue()
+
+        # self.file = None
         super(NiTimeStampProcess, self).__init__(*args, **kwargs)
-
-
-    def _write_entry(self, timestamp, message):
-        if self.file is None:
-            self.file = open(self.filename, "w")
-        self.file.write(
-            f"{timestamp},{message}\n"
-        )
 
     def run(self):
         def _reading_task_callback(task_idx, event_type, num_samples, callback_data=None):
@@ -109,9 +103,11 @@ class NiTimeStampProcess(Process):
             past_array[samples_per_frame:] = read_buffer
             tstamp_idx, tstamp_code = _find_barcode(past_array)
             if tstamp_idx is not None:
-                time_barcode_start_ns = time.time_ns() - (len(past_array) - tstamp_idx) / FS * 10e9
+                time_barcode_start_ns = time.time_ns() - np.int64((len(past_array) - tstamp_idx) / FS * 10e9)
                 print(time_barcode_start_ns)
-                self._write_entry(time_barcode_start_ns, tstamp_code)
+                self.data_queue.put(TimeStampData(t_ns=time_barcode_start_ns, code=tstamp_code))
+                # self._write_entry(time_barcod
+                # e_start_ns, tstamp_code)
 
 
             # The callback function must return 0 to prevent raising TypeError exception.
@@ -141,11 +137,44 @@ class NiTimeStampProcess(Process):
             ai_task.stop()
 
 
+import pandas as pd
+class ReceivingProcess(Process):
+    def __init__(self, *args, mouse_queue=None, tstamp_queue=None, kill_event=None, **kwargs):
+        self.mouse_queue = mouse_queue
+        self.tstamp_queue = tstamp_queue
+        self.kill_event = kill_event
+
+        self.root = Path(r"C:\Users\SNeurobiology\Documents\Luigi\vr-test\barcode_acq")
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H.%M.%S")
+
+        super(ReceivingProcess, self).__init__(*args, **kwargs)
+
+    def run(self) -> None:
+        mouse = []
+        p_tstamp = []
+        while not self.kill_event.is_set():
+            mouse.extend(self.mouse_queue.get_all())
+            p_tstamp.extend(self.tstamp_queue.get_all())
+
+        pd.DataFrame(mouse).to_csv(self.root / (self.timestamp + "_mouse.txt"))
+        pd.DataFrame(p_tstamp).to_csv(self.root / (self.timestamp + "_timestamps.txt"))
+
+
 if __name__ == "__main__":
     from time import sleep
-    p = NiTimeStampProcess()
-    p.start()
-    sleep(10)
-    p.kill_event.set()
+    from sisyphy.hardware.mice_process import EstimateVelocityProcess
+    kill_evt = Event()
+
+    p_mouse = EstimateVelocityProcess(kill_event=kill_evt)
+    p_tstamp = NiTimeStampProcess(kill_event=kill_evt)
+    p_receiver = ReceivingProcess(kill_event=kill_evt,
+                                  mouse_queue=p_mouse.data_queue,
+                                  tstamp_queue=p_tstamp.data_queue)
+
+    for p in [p_tstamp, p_mouse, p_receiver]:
+        p.start()
+    sleep(30)
+    kill_evt.set()
     sleep(0.5)
-    p.join()
+    for p in [p_tstamp, p_mouse, p_receiver]:
+        p.join()
