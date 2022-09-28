@@ -61,16 +61,27 @@ class LoggingProcess(Process):
 
 
 class TerminableProcess(Process):
-    def __init__(self, kill_event : Event, *args, **kwargs):
-        self.kill_event = kill_event
+    def __init__(self, kill_event : Event = None, *args, **kwargs):
+        self.kill_event = kill_event if kill_event is not None else Event()
         super(TerminableProcess, self).__init__(*args, **kwargs)
 
     def run(self) -> None:
+        self.before_loop()
+
         while not self.kill_event.is_set():
             self.loop()
 
+        self.after_loop()
+
+    def before_loop(self) -> None:
+        pass
+
     def loop(self) -> None:
         pass
+
+    def after_loop(self) -> None:
+        pass
+
 
 
 class LoggedEvent:
