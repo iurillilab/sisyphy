@@ -1,21 +1,21 @@
 """Code adapted from https://github.com/mjablons1/nidaqmx-continuous-analog-io.
 """
-import pyqtgraph as pg
 import numpy as np
 
 import nidaqmx as ni
 from nidaqmx import stream_readers
 import time
 from pathlib import Path
-from sisyphy.process_logger import LoggingProcess, TerminableProcess, Process, Event
+from sisyphy.process_logger import Process, Event
 from datetime import datetime
 from sisyphy.custom_dataclasses import TimeStampData
 from sisyphy.custom_queue import SaturatingQueue
+import pandas as pd
 
 
 def _find_barcode(barcode_array):
     """Find complete barcode in array of voltage reads. The barcode has to be completely
-    in the array - an half read barcode will not be detected. Make sure your sampling capture
+    in the array - a half read barcode will not be detected. Make sure your sampling capture
     all elements of the barcode in the array passed here, and no more than one barcode.
     This code runs at 50us on a 8k sample, so should not affect timing too much.
     """
@@ -60,22 +60,17 @@ def _find_barcode(barcode_array):
     return wrapper_indexes[0], sum(bit_base * (barcode_array[bit_center_indexes] > SIG_THR))
 
 
-dev_name = 'Dev1'  # < remember to change to your device name, and channel input names below.
+dev_name = 'Dev3'  # < remember to change to your device name, and channel input names below.
 ai0 = '/ai0'
 
 FS = 2000  # sample rate for input and output.
 # NOTE: Depending on your hardware sample clock frequency and available dividers some sample rates may not be supported.
 
-frames_per_buffer = 100  # nr of frames fitting into the buffer of each measurement channel.
+frames_per_buffer = 10  # nr of frames fitting into the buffer of each measurement channel.
 # NOTE  With my NI6211 it was necessary to override the default buffer size to prevent under/over run at high sample
 # rates.
-refresh_rate_hz = 1
-samples_per_frame = int(FS // refresh_rate_hz)
-
-dur = 15  # duration in seconds
-samples_total = dur * FS
-acquisition_buffer = np.zeros(samples_total, dtype=float)
-timebase = np.arange(samples_per_frame) / FS
+dur = 1.25  # duration in seconds of reading window
+samples_per_frame = int(FS * dur)  # for some reason should be integer dividend of 10000
 
 
 class NiTimeStampProcess(Process):
@@ -102,13 +97,15 @@ class NiTimeStampProcess(Process):
             past_array[:samples_per_frame] = past_array[samples_per_frame:]
             past_array[samples_per_frame:] = read_buffer
             tstamp_idx, tstamp_code = _find_barcode(past_array)
-            if tstamp_idx is not None:
-                time_barcode_start_ns = time.time_ns() - np.int64((len(past_array) - tstamp_idx) / FS * 10e9)
-                print(time_barcode_start_ns)
-                self.data_queue.put(TimeStampData(t_ns=time_barcode_start_ns, code=tstamp_code))
-                # self._write_entry(time_barcod
-                # e_start_ns, tstamp_code)
 
+            # if we found a complete barcode, send its time and clear the buffer to avoid double-counting:
+            if tstamp_idx is not None:
+                now = time.time_ns()
+                time_barcode_start_ns = now - np.int64((len(past_array) - tstamp_idx) / FS * 1e9)
+                self.data_queue.put(TimeStampData(t_ns_buffer_stream=now,
+                                                  t_ns_code=time_barcode_start_ns,
+                                                  code=tstamp_code))
+                past_array[:] = 0
 
             # The callback function must return 0 to prevent raising TypeError exception.
             return 0
@@ -137,14 +134,13 @@ class NiTimeStampProcess(Process):
             ai_task.stop()
 
 
-import pandas as pd
 class ReceivingProcess(Process):
     def __init__(self, *args, mouse_queue=None, tstamp_queue=None, kill_event=None, **kwargs):
         self.mouse_queue = mouse_queue
         self.tstamp_queue = tstamp_queue
         self.kill_event = kill_event
 
-        self.root = Path(r"C:\Users\SNeurobiology\Documents\Luigi\vr-test\barcode_acq")
+        self.root = Path(r"C:\Users\SNeurobiology\data\luigi-testing\barcode_testing")
         self.timestamp = datetime.now().strftime("%Y%m%d_%H.%M.%S")
 
         super(ReceivingProcess, self).__init__(*args, **kwargs)
@@ -153,7 +149,9 @@ class ReceivingProcess(Process):
         mouse = []
         p_tstamp = []
         while not self.kill_event.is_set():
-            mouse.extend(self.mouse_queue.get_all())
+            m = self.mouse_queue.get_all()
+            mouse.extend(m)
+
             p_tstamp.extend(self.tstamp_queue.get_all())
 
         pd.DataFrame(mouse).to_csv(self.root / (self.timestamp + "_mouse.txt"))
@@ -173,7 +171,7 @@ if __name__ == "__main__":
 
     for p in [p_tstamp, p_mouse, p_receiver]:
         p.start()
-    sleep(30)
+    sleep(3600)
     kill_evt.set()
     sleep(0.5)
     for p in [p_tstamp, p_mouse, p_receiver]:
