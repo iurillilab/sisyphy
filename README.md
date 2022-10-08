@@ -1,5 +1,6 @@
 # sisyphy
-Minimal code for handling acquisition of position from ball and some acquisition synch tools
+Minimal code for handling acquisition of position from a spherical treadmill.
+This package also include code for synching the acquisition with Arduino-generated barcodes using the system described [here](https://optogeneticsandneuralengineeringcore.gitlab.io/ONECoreSite/projects/DAQSyncronization/) from the Optogenetics and Neural Engineering (ONE) Core at the University of Colorado School of Medicine.
 
 ## WIP notes
 
