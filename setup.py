@@ -10,7 +10,7 @@ with open("README.md") as f:
     long_description = f.read()
 
 setup(
-    name="dreamdrome",
+    name="sisyphy",
     version="0.1.0",
     description="Minimal code to acquire from ball & mice",
     install_requires=requirements,

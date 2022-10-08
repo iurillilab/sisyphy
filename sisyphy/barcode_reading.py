@@ -38,7 +38,7 @@ def _find_barcode(barcode_array):
 
     # Get on and off events:
     on_events = pulses_diff[event_indexes] > DIFF_THR
-    off_events =  ~on_events
+    off_events = ~on_events
 
     # Find wrappers by checking for off-on-off transitions faster than DURATION_THR ms:
     wrapper_select = on_events[:-1] & off_events[1:] & (np.diff(event_indexes) < duration_thr_pts)
@@ -50,14 +50,14 @@ def _find_barcode(barcode_array):
     wrapper_indexes = event_indexes[:-1][wrapper_select]
 
     # start reading from middle of first barcode bin:
-    reading_start = wrapper_indexes[0] + wrap_width_pts * 2 +  bit_width_pts // 2
+    reading_start = wrapper_indexes[0] + wrap_width_pts * 2 + bit_width_pts // 2
 
     # Read voltage level in the middle of the bins (#TODO maybe an average would be better):
     bit_center_indexes = reading_start + np.arange(N_BITS) * bit_width_pts
     bool_bits = (barcode_array[bit_center_indexes] > SIG_THR)
 
     # Convert sequence to binary number and return with index:
-    return wrapper_indexes[0], sum(bit_base * (barcode_array[bit_center_indexes] > SIG_THR))
+    return wrapper_indexes[0], sum(bit_base * bool_bits)
 
 
 dev_name = 'Dev1'  # < remember to change to your device name, and channel input names below.
