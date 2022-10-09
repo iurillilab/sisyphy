@@ -15,8 +15,8 @@ class _TimestampedDataClass:
 
 @dataclass
 class MouseVelocityData(_TimestampedDataClass):
-    x: int
-    y: int
+    x: float
+    y: float
 
 
 @dataclass

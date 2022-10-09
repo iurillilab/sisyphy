@@ -8,7 +8,7 @@ from sisyphy.custom_dataclasses import (
     RawMiceVelocityData,
 )
 from sisyphy.defaults import BALL_CALIBRATION
-from sisyphy.hardware.usbmouse import Mouse, MouseVelocityData
+from sisyphy.hardware.usbmouse import WinUsbMouse, MouseVelocityData
 from sisyphy.custom_queue import SaturatingQueue
 
 # Streaming dataclasses between processes does impact performance a bit, but hopefully not to a meaningful degree
@@ -29,12 +29,12 @@ class _BaseMouseProcess(Process):
         self.kill_event = kill_event
 
     def _setup_mice(self) -> None:
-        self.mouse0 = Mouse(ind=0)
+        self.mouse0 = WinUsbMouse(ind=0)
         # self.mouse1 = Mouse(ind=1)
 
     def _read_mice(self) -> RawMiceVelocityData:
         return RawMiceVelocityData(
-            mouse0=self.mouse0.read_velocity(), mouse1=MouseVelocityData(x=0, y=0),#self.mouse1.read_velocity()
+            mouse0=self.mouse0.get_velocities(), mouse1=MouseVelocityData(x=0, y=0),#self.mouse1.read_velocity()
         )
 
     def _get_message(self):

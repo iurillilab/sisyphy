@@ -160,7 +160,7 @@ class ReceivingProcess(Process):
 
 if __name__ == "__main__":
     from time import sleep
-    from sisyphy.hardware.mice_process import EstimateVelocityProcess
+    from sisyphy.processes.mice_process import EstimateVelocityProcess
     kill_evt = Event()
 
     p_mouse = EstimateVelocityProcess(kill_event=kill_evt)
