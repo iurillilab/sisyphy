@@ -8,8 +8,8 @@ import time
 from pathlib import Path
 from sisyphy.process_logger import Process, Event
 from datetime import datetime
-from sisyphy.custom_dataclasses import TimeStampData
-from sisyphy.custom_queue import SaturatingQueue
+from sisyphy.sphere_velocity.dataclasses import TimeStampData
+from sisyphy.utils.custom_queue import SaturatingQueue
 import pandas as pd
 
 
@@ -160,7 +160,7 @@ class ReceivingProcess(Process):
 
 if __name__ == "__main__":
     from time import sleep
-    from sisyphy.processes.mice_process import EstimateVelocityProcess
+    from sisyphy.sphere_velocity.processes import EstimateVelocityProcess
     kill_evt = Event()
 
     p_mouse = EstimateVelocityProcess(kill_event=kill_evt)

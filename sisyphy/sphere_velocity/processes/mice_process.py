@@ -1,15 +1,14 @@
-from multiprocessing import Event, Process
+from multiprocessing import Process
 
 import numpy as np
-import time
 
-from sisyphy.custom_dataclasses import (
+from sisyphy.sphere_velocity.dataclasses import (
     EstimatedVelocityData,
     RawMiceVelocityData,
 )
-from sisyphy.defaults import BALL_CALIBRATION
-from sisyphy.hardware.usbmouse import WinUsbMouse, MouseVelocityData
-from sisyphy.custom_queue import SaturatingQueue
+from sisyphy.sphere_velocity.defaults import BALL_CALIBRATION
+from sisyphy.sphere_velocity.hardware.usbmouse import WinUsbMouse, MouseVelocityData
+from sisyphy.utils.custom_queue import SaturatingQueue
 
 # Streaming dataclasses between processes does impact performance a bit, but hopefully not to a meaningful degree
 # (18 us vs 14 us / it for something with 2 integers and a timestamp, vs an equivalent tuple)
