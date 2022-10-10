@@ -4,9 +4,9 @@ import numpy as np
 
 from sisyphy.sphere_velocity.defaults import BALL_CALIBRATION
 from sisyphy.sphere_velocity.hardware.usbmouse import (
+    DummyMouse,
     MouseVelocityData,
     WinUsbMouse,
-DummyMouse
 )
 from sisyphy.sphere_velocity.sphere_dataclasses import (
     EstimatedVelocityData,
@@ -36,8 +36,7 @@ class _BaseMouseProcess(Process):
 
     def _read_mice(self) -> RawMiceVelocityData:
         return RawMiceVelocityData(
-            mouse0=self.mouse0.get_velocities(),
-            mouse1=self.mouse1.get_velocities()
+            mouse0=self.mouse0.get_velocities(), mouse1=self.mouse1.get_velocities()
         )
 
     def _get_message(self):
@@ -102,8 +101,7 @@ class SphereVelocityProcess(RawUsbMiceProcess):
 
 
 class DummyVelocityProcess(SphereVelocityProcess):
-    """Subclass that simulate data stream from fake mouse.
-    """
+    """Subclass that simulate data stream from fake mouse."""
 
     def _setup_mice(self) -> None:
         self.mouse0 = DummyMouse()

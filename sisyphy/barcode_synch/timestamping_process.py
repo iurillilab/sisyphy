@@ -1,6 +1,7 @@
 """Code adapted from https://github.com/mjablons1/nidaqmx-continuous-analog-io.
 """
 import time
+from multiprocessing import Event, Process
 
 import nidaqmx as ni
 import numpy as np
@@ -8,9 +9,7 @@ from nidaqmx import stream_readers
 
 from sisyphy.barcode_synch.barcode_reading import find_single_barcode
 from sisyphy.barcode_synch.bcode_dataclasses import TimeStampData
-from multiprocessing import Event, Process
 from sisyphy.utils.custom_queue import SaturatingQueue
-
 
 # TODO maybe in this class hardware and barcode reading logic might be separated better.
 # I will change this if it happens that I will be reading the signal with something different from an NI.
@@ -139,4 +138,3 @@ class NiTimeStampProcess(Process):
                 pass
 
             ai_task.stop()
-

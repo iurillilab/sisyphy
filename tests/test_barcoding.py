@@ -1,6 +1,8 @@
-import numpy as np
-from sisyphy.barcode_synch.timestamping_process import NiTimeStampProcess
 from multiprocessing import Event
+
+import numpy as np
+
+from sisyphy.barcode_synch.timestamping_process import NiTimeStampProcess
 
 
 # TODO mark this as hardware specific!

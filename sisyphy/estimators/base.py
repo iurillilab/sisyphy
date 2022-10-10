@@ -1,13 +1,19 @@
-from time import time_ns
-from multiprocessing import Process, Event
-from sisyphy.sphere_velocity import SphereVelocityProcess, DummyVelocityProcess
 import warnings
+from multiprocessing import Event, Process
+from time import time_ns
+
 import pandas as pd
 
 
 class Estimator(Process):
-    def __init__(self, *args, time_to_avg_s : float=0.100, kill_event : Event=None,
-                 sphere_data_queue=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        time_to_avg_s: float = 0.100,
+        kill_event: Event = None,
+        sphere_data_queue=None,
+        **kwargs,
+    ):
         """
         Parameters
         ----------
@@ -39,26 +45,27 @@ class Estimator(Process):
 
         # Check we are not lagging behind with the queue reading:
         if now - self._past_times[i] > 5 * 1e8:
-            warnings.warn("More than 0.5 seconds between estimator time and last values in the queue!")
+            warnings.warn(
+                "More than 0.5 seconds between estimator time and last values in the queue!"
+            )
 
         while i > 0:
             if (now - self._past_times[i]) > (self._time_to_avg_s * 1e9):
-                print(i, len(self._past_times) - i )
+                print(i, len(self._past_times) - i)
                 break
             else:
                 i -= 1
         return i
 
     def fetch_data(self):
-        """Update internal data lists.
-        """
+        """Update internal data lists."""
         retrieved_data = self._sphere_data_queue.get_all()
         self._past_data_list.extend(retrieved_data)
         self._past_times.extend([d.t_ns for d in retrieved_data])
 
     @property
     def average_values(self):
-        data_df = pd.DataFrame(self._past_data_list[self.last_past_idx:])
+        data_df = pd.DataFrame(self._past_data_list[self.last_past_idx :])
         return data_df.mean()
 
     def loop(self):
@@ -74,12 +81,14 @@ class Estimator(Process):
             self.loop()
 
 
-
-
-
-
-if __name__=="__main__":
+if __name__ == "__main__":
     from time import sleep
+
+    from sisyphy.sphere_velocity import (
+        DummyVelocityProcess,
+        SphereVelocityProcess,
+    )
+
     kill_event = Event()
     mouse_process = SphereVelocityProcess(kill_event=kill_event)
     p = Estimator(sphere_data_queue=mouse_process.data_queue, kill_event=kill_event)
@@ -89,6 +98,5 @@ if __name__=="__main__":
     kill_event.set()
     mouse_process.join()
     sleep(0.5)
-
 
     p.join()

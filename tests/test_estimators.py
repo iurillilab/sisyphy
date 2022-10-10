@@ -1,5 +1,6 @@
-from time import sleep
 from multiprocessing import Event
+from time import sleep
+
 from sisyphy.estimators import Estimator
 from sisyphy.sphere_velocity import DummyVelocityProcess
 
@@ -14,6 +15,5 @@ def test_base_estimator():
     kill_event.set()
     mouse_process.join()
     sleep(0.5)
-
 
     p.join()

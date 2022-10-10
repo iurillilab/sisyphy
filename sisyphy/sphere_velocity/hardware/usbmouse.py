@@ -1,8 +1,8 @@
+from time import time_ns
 from typing import Tuple
 
 import numpy as np
 import usb1
-from time import time_ns
 
 from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
 
