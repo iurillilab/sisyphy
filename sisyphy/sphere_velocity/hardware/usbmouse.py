@@ -1,4 +1,5 @@
 from typing import Tuple
+
 import numpy as np
 import usb1
 
@@ -6,8 +7,7 @@ from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
 
 
 def _u2s(u, d):
-    """Convert 2 unsigned char to a signed int.
-    """
+    """Convert 2 unsigned char to a signed int."""
 
     if d < 127:
         return float(d * 256 + u)
@@ -17,8 +17,7 @@ def _u2s(u, d):
 
 class Mouse:
     def __init__(self):
-        """Base class for reading velocity from a mouse.
-        """
+        """Base class for reading velocity from a mouse."""
         self.mouse = None
         self._initialise_mouse()
 
@@ -26,8 +25,7 @@ class Mouse:
         pass
 
     def _read_velocities(self) -> Tuple[float, float]:
-        """Empty method to velocities from hardware.
-        """
+        """Empty method to velocities from hardware."""
         pass
 
     def get_velocities(self) -> MouseVelocityData:
@@ -66,7 +64,8 @@ class WinUsbMouse(Mouse):
         matching_devices = [
             dev
             for dev in usb_devices
-            if dev.getVendorID() == self.ig_id_vendor and dev.getProductID() == self.ig_id_product
+            if dev.getVendorID() == self.ig_id_vendor
+            and dev.getProductID() == self.ig_id_product
         ]
 
         # Open device:

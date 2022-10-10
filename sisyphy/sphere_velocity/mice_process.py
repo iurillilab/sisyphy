@@ -2,12 +2,15 @@ from multiprocessing import Process
 
 import numpy as np
 
+from sisyphy.sphere_velocity.defaults import BALL_CALIBRATION
+from sisyphy.sphere_velocity.hardware.usbmouse import (
+    MouseVelocityData,
+    WinUsbMouse,
+)
 from sisyphy.sphere_velocity.sphere_dataclasses import (
     EstimatedVelocityData,
     RawMiceVelocityData,
 )
-from sisyphy.sphere_velocity.defaults import BALL_CALIBRATION
-from sisyphy.sphere_velocity.hardware.usbmouse import WinUsbMouse, MouseVelocityData
 from sisyphy.utils.custom_queue import SaturatingQueue
 
 # Streaming dataclasses between processes does impact performance a bit, but hopefully not to a meaningful degree
@@ -33,7 +36,8 @@ class _BaseMouseProcess(Process):
 
     def _read_mice(self) -> RawMiceVelocityData:
         return RawMiceVelocityData(
-            mouse0=self.mouse0.get_velocities(), mouse1=MouseVelocityData(x=0, y=0),#self.mouse1.read_velocity()
+            mouse0=self.mouse0.get_velocities(),
+            mouse1=MouseVelocityData(x=0, y=0),  # self.mouse1.read_velocity()
         )
 
     def _get_message(self):
@@ -46,7 +50,7 @@ class _BaseMouseProcess(Process):
             # We put values in the queue only for non-zero reading, useless to clog otherwise
             # if any(v != 0 for v in mouse0_vel + mouse1_vel):
             msg = self._get_message()
-            #print(msg, time.time_ns())
+            # print(msg, time.time_ns())
             # We stream dataclasses as this seems to impact only 10% speed vs tuples.
 
             self.data_queue.put(msg)

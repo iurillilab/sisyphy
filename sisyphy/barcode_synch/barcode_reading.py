@@ -3,23 +3,26 @@
 import numpy as np
 
 
-def find_single_barcode(barcode_array, fs_khz):
+def find_single_barcode(barcode_array, fs_hz):
     """Find complete barcode in array of voltage reads. The barcode has to be completely
     in the array - a half read barcode will not be detected. Make sure your sampling capture
     all elements of the barcode in the array passed here, and no more than one barcode.
     This code runs at 50us on a 8k sample, so should not affect timing too much.
     """
-    DURATION_THR = 15  # duration in ms below which one pulse is considered a wrapper
-    BIT_WIDTH_MS = 30  # duration of each bit in ms
-    WRAPPER_WIDTH_MS = 10  # duration of the wrapper in ms
+    DURATION_THR_S = (
+        0.015  # duration in s below which one pulse is considered a wrapper
+    )
+    BIT_WIDTH_S = 0.030  # duration of each bit in s
+    WRAPPER_WIDTH_S = 0.010  # duration of the wrapper in s
     SIG_THR = 2.5  # threshold on signal for ON
     DIFF_THR = 0.5  # threshold on diff for transition
     N_BITS = 32
-    wrap_width_pts = WRAPPER_WIDTH_MS * fs_khz
-    bit_width_pts = BIT_WIDTH_MS * fs_khz
-    duration_thr_pts = DURATION_THR * fs_khz
 
-    bit_base = 2**np.arange(N_BITS, dtype=np.int64)
+    wrap_width_pts = int(WRAPPER_WIDTH_S * fs_hz)
+    bit_width_pts = int(BIT_WIDTH_S * fs_hz)
+    duration_thr_pts = int(DURATION_THR_S * fs_hz)
+
+    bit_base = 2 ** np.arange(N_BITS, dtype=np.int64)
 
     pulses_diff = np.diff(barcode_array)
     event_indexes = np.argwhere(np.abs(pulses_diff) > DIFF_THR)[:, 0]
@@ -32,7 +35,9 @@ def find_single_barcode(barcode_array, fs_khz):
     off_events = ~on_events
 
     # Find wrappers by checking for off-on-off transitions faster than DURATION_THR ms:
-    wrapper_select = on_events[:-1] & off_events[1:] & (np.diff(event_indexes) < duration_thr_pts)
+    wrapper_select = (
+        on_events[:-1] & off_events[1:] & (np.diff(event_indexes) < duration_thr_pts)
+    )
 
     # Make sure we have here the entirety of the barcode
     if sum(wrapper_select) != 2:
@@ -46,7 +51,7 @@ def find_single_barcode(barcode_array, fs_khz):
     # Read voltage level in the middle of the bins (#TODO maybe an average would be better):
     bit_center_indexes = reading_start + np.arange(N_BITS) * bit_width_pts
 
-    bool_bits = (barcode_array[bit_center_indexes] > SIG_THR)
+    bool_bits = barcode_array[bit_center_indexes] > SIG_THR
 
     # Convert sequence to binary number and return with index:
     return wrapper_indexes[0], sum(bit_base * bool_bits)

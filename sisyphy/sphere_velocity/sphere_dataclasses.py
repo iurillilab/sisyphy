@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from sisyphy.utils.dataclasses import TimestampedDataClass
 
 

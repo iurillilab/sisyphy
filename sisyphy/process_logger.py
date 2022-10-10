@@ -2,13 +2,11 @@
 written by Vilim Štih.
 """
 
-from multiprocessing import Process
 import time
+from enum import Enum, auto
+from multiprocessing import Event, Process
 from pathlib import Path
 from typing import Optional, TextIO
-from enum import Enum, auto
-from multiprocessing import Event
-from typing import Optional
 
 
 class ConcurrenceLogger:
@@ -18,7 +16,9 @@ class ConcurrenceLogger:
         self.file: Optional[TextIO] = None
         self.process_name = process_name
         # configuration = config.read_config()
-        self.root = Path(r"C:\Users\SNeurobiology\Documents\Luigi\vr-test")  # configuration["default_paths"]["log"])
+        self.root = Path(
+            r"C:\Users\SNeurobiology\Documents\Luigi\vr-test"
+        )  # configuration["default_paths"]["log"])
 
     def _write_entry(self, event_type, event_id, is_sender, event_value):
         if self.file is None:
@@ -49,8 +49,7 @@ class ConcurrenceLogger:
 
 
 class LoggingProcess(Process):
-    """A process with an integrated concurrence logger
-    """
+    """A process with an integrated concurrence logger"""
 
     def __init__(self, *args, name, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,7 +60,7 @@ class LoggingProcess(Process):
 
 
 class TerminableProcess(Process):
-    def __init__(self, kill_event : Event = None, *args, **kwargs):
+    def __init__(self, kill_event: Event = None, *args, **kwargs):
         self.kill_event = kill_event if kill_event is not None else Event()
         super(TerminableProcess, self).__init__(*args, **kwargs)
 
@@ -81,7 +80,6 @@ class TerminableProcess(Process):
 
     def after_loop(self) -> None:
         pass
-
 
 
 class LoggedEvent:

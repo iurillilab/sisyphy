@@ -24,8 +24,9 @@ class SaturatingQueue(Queue):
 
         while True:
             try:
-                all_data.append(super(SaturatingQueue, self).get(*args, block=False,
-                                                                 **kwargs))
+                all_data.append(
+                    super(SaturatingQueue, self).get(*args, block=False, **kwargs)
+                )
             except Empty:
                 break
 
