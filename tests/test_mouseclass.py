@@ -1,5 +1,5 @@
 from sisyphy.sphere_velocity.hardware.usbmouse import DummyMouse
-from sisyphy.sphere_velocity.dataclasses import MouseVelocityData
+from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
 
 
 def test_mouseclass():

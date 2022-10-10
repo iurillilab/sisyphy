@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import usb1
 
-from sisyphy.sphere_velocity.dataclasses import MouseVelocityData
+from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
 
 
 def _u2s(u, d):

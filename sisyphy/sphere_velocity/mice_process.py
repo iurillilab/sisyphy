@@ -2,7 +2,7 @@ from multiprocessing import Process
 
 import numpy as np
 
-from sisyphy.sphere_velocity.dataclasses import (
+from sisyphy.sphere_velocity.sphere_dataclasses import (
     EstimatedVelocityData,
     RawMiceVelocityData,
 )
