@@ -6,6 +6,7 @@ from sisyphy.sphere_velocity.defaults import BALL_CALIBRATION
 from sisyphy.sphere_velocity.hardware.usbmouse import (
     MouseVelocityData,
     WinUsbMouse,
+DummyMouse
 )
 from sisyphy.sphere_velocity.sphere_dataclasses import (
     EstimatedVelocityData,
@@ -31,13 +32,12 @@ class _BaseMouseProcess(Process):
         self.kill_event = kill_event
 
     def _setup_mice(self) -> None:
-        self.mouse0 = WinUsbMouse(ind=0)
-        # self.mouse1 = Mouse(ind=1)
+        pass
 
     def _read_mice(self) -> RawMiceVelocityData:
         return RawMiceVelocityData(
             mouse0=self.mouse0.get_velocities(),
-            mouse1=MouseVelocityData(x=0, y=0),  # self.mouse1.read_velocity()
+            mouse1=self.mouse1.get_velocities()
         )
 
     def _get_message(self):
@@ -55,16 +55,24 @@ class _BaseMouseProcess(Process):
 
             self.data_queue.put(msg)
 
+        # clear queue before closing:
+        d = self.data_queue.get_all()
+        print(f"Closing mice, cleared {len(d)} elements from queue")
 
-class RawMiceProcess(_BaseMouseProcess):
+
+class RawUsbMiceProcess(_BaseMouseProcess):
     """Subclass that streams raw mouse coordinates."""
 
     def _get_message(self):
         """Stream raw data."""
         return self._read_mice()
 
+    def _setup_mice(self) -> None:
+        self.mouse0 = WinUsbMouse(ind=0)
+        self.mouse1 = WinUsbMouse(ind=1)
 
-class EstimateVelocityProcess(_BaseMouseProcess):
+
+class SphereVelocityProcess(RawUsbMiceProcess):
     """Subclass that streams raw mouse coordinates."""
 
     @staticmethod
@@ -91,6 +99,15 @@ class EstimateVelocityProcess(_BaseMouseProcess):
         return EstimatedVelocityData(
             pitch=trasformed[0], yaw=trasformed[1], roll=-trasformed[2]
         )
+
+
+class DummyVelocityProcess(SphereVelocityProcess):
+    """Subclass that simulate data stream from fake mouse.
+    """
+
+    def _setup_mice(self) -> None:
+        self.mouse0 = DummyMouse()
+        self.mouse1 = DummyMouse()
 
 
 #

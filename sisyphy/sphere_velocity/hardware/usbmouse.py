@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import usb1
+from time import time_ns
 
 from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
 
@@ -35,7 +36,18 @@ class Mouse:
 
 
 class DummyMouse(Mouse):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.starting_t = time_ns()
+        self.phase_x = np.random.randn()
+        self.phase_y = np.random.randn()
+        self.prev_elapsed = 0
+
     def _read_velocities(self) -> Tuple[float, float]:
+        elapsed = 0
+        while elapsed - self.prev_elapsed < 50000000:
+            elapsed = time_ns() - self.starting_t
+        self.prev_elapsed = elapsed
         return np.random.randn(), np.random.randn()
 
 
