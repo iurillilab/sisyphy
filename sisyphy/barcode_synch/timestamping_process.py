@@ -140,31 +140,3 @@ class NiTimeStampProcess(Process):
 
             ai_task.stop()
 
-
-if __name__ == "__main__":
-    dev_name = "Dev6"  # < remember to change to your device name, and channel input names below.
-    ai0 = "/ai0"
-
-    FS = 2000
-    frames_per_buffer = 10
-    dur = 1.25
-
-    from time import sleep
-
-    kill_evt = Event()
-
-    p_tstamp = NiTimeStampProcess(
-        kill_event=kill_evt,
-        frame_duration=dur,
-        fs=FS,
-        frames_per_buffer=frames_per_buffer,
-        device_name=dev_name,
-        device_channel=ai0,
-        debug_mode=True,
-    )
-
-    p_tstamp.start()
-    sleep(10)
-    kill_evt.set()
-    sleep(0.5)
-    p_tstamp.join()
