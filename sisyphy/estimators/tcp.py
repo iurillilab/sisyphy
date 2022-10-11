@@ -7,6 +7,14 @@ from sisyphy.estimators.base import Estimator
 TIMEOUT = 0.001  # timeout for waiting for data request
 
 
+def _normalize(val):
+    return max(min(int(val) + 127, 255), 0)
+
+
+def _prepare_for_tcp(velocities):
+    return bytes([_normalize(velocities.pitch), _normalize(velocities.yaw)])
+
+
 class TcpEstimator(Estimator):
     def __init__(self, *args, address: str = "127.0.0.1", port: int = 65432, **kwargs):
         """Estimator that communicate the average velocities when queried on a TCP port.
@@ -35,7 +43,6 @@ class TcpEstimator(Estimator):
                     self.fetch_data()  # let the queue reading go
                     try:
                         data = conn.recv(1024)
-                        print(data, type(data))
 
                         if data == b"read_velocities":
                             #     vals = np.random.randint(-127, 127, 2) + 127
@@ -44,7 +51,7 @@ class TcpEstimator(Estimator):
                             print(velocities)
                             if len(velocities) > 0:
                                 print(velocities.yaw, velocities.pitch)
-                                conn.sendall(bytes([0, 17]))
+                                conn.sendall(_prepare_for_tcp(velocities))
                             else:
                                 conn.sendall(bytes([0, 0]))
 

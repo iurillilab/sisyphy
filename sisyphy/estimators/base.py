@@ -72,20 +72,24 @@ class Estimator(Process):
         """Custom code to loop in the run of the estimator to e.g. expose the velocity
         to some interface.
         """
-        pass
 
     def run(self) -> None:
         self.t_start = time_ns()
+        i = 0
         while not self.kill_event.is_set():
             self.fetch_data()
             self.loop()
+            if i % 1000 == 0:
+                v = self.average_values
+                if len(v) > 0:
+                    print(v.pitch, v.yaw)
+            i += 1
 
 
 if __name__ == "__main__":
     from time import sleep
 
     from sisyphy.sphere_velocity import (
-        DummyVelocityProcess,
         SphereVelocityProcess,
     )
 
