@@ -6,15 +6,15 @@ import os
 from datetime import datetime
 from multiprocessing import Process, freeze_support
 
+
 import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 from pyqtgraph.Qt import QtGui
 
-from sisyphy.hardware_readers import CalibratedSphereReaderProcess
+from sisyphy import MockDataStreamer
 
 app = pg.mkQApp("GLMeshItem Example")
-
 
 class CustomGLViewWidget(gl.GLViewWidget):
     def __init__(self, *args, kill_event, **kwargs):
@@ -87,20 +87,46 @@ class receiver(Process):
 
 
 if __name__ == "__main__":
+    from time import sleep
     from multiprocessing import Event
+    print("MAIN PID: ", os.getpid())
 
     freeze_support()
+    kill_evt = Event()
+
+    data_streamer = MockDataStreamer(kill_event=kill_evt)
+    receiv = receiver(data_queue=data_streamer.output_queue, kill_evt=kill_evt)
+    data_streamer.start()
+    receiv.start()
+
+    # plt = PLT(kill_evt)
+
+
+
+
+    #sleep(2)
+    #data_streamer.stop()
+    """
+    
+
+
+
+    
     print("MAIN PID: ", os.getpid())
     kill_evt = Event()
     # out_pipe, in_pipe = mp.Pipe()
-    p1 = CalibratedSphereReaderProcess(kill_event=kill_evt)
+    # p1 = CalibratedSphereReaderProcess(kill_event=kill_evt)
+
+    p1 = MockDataStreamer(kill_event=kill_evt)
 
     # p1 = sender(pipe=in_pipe)
-    p2 = receiver(data_queue=p1.data_queue, kill_evt=kill_evt)
+    # p2 = receiver(data_queue=p1.output_queue, kill_evt=kill_evt)
     p1.start()
-    p2.start()
+    
+    # p2.start()
     print("started")
 
 
 # if __name__ == '__main__':
 #     pg.exec()
+"""

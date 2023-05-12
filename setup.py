@@ -3,7 +3,7 @@ from setuptools import find_namespace_packages, setup
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
-with open("requirements_dev.txt") as f:
+with open("requirements-dev.txt") as f:
     requirements_dev = f.read().splitlines()
 
 with open("README.md") as f:

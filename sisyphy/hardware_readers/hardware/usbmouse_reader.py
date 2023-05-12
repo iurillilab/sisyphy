@@ -10,17 +10,8 @@ from sisyphy.utils.dataclasses import TimestampedDataClass
 @dataclass
 class MouseVelocityData(TimestampedDataClass):
     """Timestamped values for mouse motion over the two coordinates."""
-    x: float
-    y: float
-
-
-def _u2s(u, d):
-    """Convert 2 unsigned char to a signed int."""
-
-    if d < 127:
-        return float(d * 256 + u)
-    else:
-        return float((d - 255) * 256 - 256 + u)
+    x: int
+    y: int
 
 
 class AbstractMouse(metaclass=abc.ABCMeta):
@@ -74,6 +65,9 @@ class MockMouse(AbstractMouse):
         self.phase_y = np.random.randn()
         self.prev_elapsed = 0
 
+    def _initialise_mouse(self) -> None:
+        pass
+
     def _read_mouse(self) -> None:
         pass
 
@@ -82,7 +76,7 @@ class MockMouse(AbstractMouse):
         while elapsed - self.prev_elapsed < self.TIMESTEP_NS:
             elapsed = time_ns() - self.starting_t
         self.prev_elapsed = elapsed
-        return np.random.randn(), np.random.randn()
+        return np.random.randint(-127, 127), np.random.randint(-127, 127)
 
 
 class WinUsbMouse(AbstractMouse):
@@ -121,6 +115,15 @@ class WinUsbMouse(AbstractMouse):
         self.mouse = matching_devices[self.ind].open()
         self.mouse.claimInterface(0)
 
+    @staticmethod
+    def _unsigned2signed(u, d):
+        """Convert 2 unsigned char to a signed int."""
+
+        if d < 127:
+            return float(d * 256 + u)
+        else:
+            return float((d - 255) * 256 - 256 + u)
+
     def _read_velocities(self) -> Tuple[float, float]:
         """Read instantaneous velocity from a mouse.
 
@@ -133,8 +136,8 @@ class WinUsbMouse(AbstractMouse):
         TIMEOUT = 1  # This does not seem to change anything as long as it is > 1, so we don't make it configurable.
         try:
             readout = [dat for dat in self.mouse.interruptRead(0x81, 8, TIMEOUT)]
-            y = _u2s(readout[2], readout[3])
-            x = _u2s(readout[4], readout[5])
+            y = self._unsigned2signed(readout[2], readout[3])
+            x = self._unsigned2signed(readout[4], readout[5])
         except usb1.USBErrorTimeout:
             pass
 

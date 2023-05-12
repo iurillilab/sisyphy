@@ -1,10 +1,9 @@
 import warnings
 import abc
-from multiprocessing import Event, Process
-from time import time_ns
+from multiprocessing import Event, Process, Queue
+from time import time_ns, sleep
 
 import pandas as pd
-from sisyphy.hardware_readers import CalibratedSphereReaderProcess
 
 
 class DataStreamer(Process, metaclass=abc.ABCMeta):
@@ -17,6 +16,7 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
         time_to_avg_s: float = 0.100,
         kill_event: Event = None,
         sphere_data_queue = None,
+        output_queue = None,
         **kwargs,
     ):
         """
@@ -26,15 +26,21 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
             Duration of the window over which to average.
         kill_event : Event
             Termination event.
+        sphere_data_queue : Queue
+            Queue to read data from.
+        output_queue : Queue
+            Queue to write data to.
+
         """
         super().__init__(*args, **kwargs)
 
         self.kill_event = kill_event if kill_event is not None else Event()
+        self._sphere_data_queue = sphere_data_queue \
 
-        # If there isn't already one, we start a sphere reading process:
+        self.output_queue = output_queue if output_queue is not None else Queue()
 
         self._time_to_avg_s = time_to_avg_s
-        self._sphere_data_queue = sphere_data_queue
+
         self._past_data_list = []
         self._past_times = []
         self.t_start = time_ns()
@@ -79,13 +85,6 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
     def execute_in_run_loop(self):
         pass
 
-    def close(self):
-        self.kill_event.set()
-        self.mouse_process.join()
-        sleep(0.5)
-
-        self.join()
-
     def run(self) -> None:
         self.t_start = time_ns()
         i = 0
@@ -95,9 +94,15 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
 
             # Some printing:
             if i % 1000 == 0:
-                v = self.average_values
-                if len(v) > 0:
-                    print(f"Average values: pitch: {v.pitch}, yaw: {v.pitch}, roll: {v.roll}")
+                avg_vals = self.average_values
+                if len(avg_vals) > 0:
+                    vals_dict = avg_vals.to_dict()
+                    data_string = "".join([f"{key}: {val}  - " for key, val in vals_dict.items()])
+                    print(f"Average values: {data_string}")
+
+
+                    self.output_queue.put(avg_vals)
+                    print(self.output_queue)
             i += 1
 
 
@@ -107,46 +112,5 @@ class SocketStreamer(DataStreamer, metaclass=abc.ABCMeta):
         self.address = address
         self.port = port
         self.query_string = query_string
-
-
-class SphereDataStreamer:
-    """Utility function that wraps together a DataStreamer and a MouseReader process, not having
-    to instantiate them every time.
-
-    Public methods:
-    ---------------
-
-        start :
-            Starts the reading and the streaming process
-        stop :
-            Ends both processes
-
-    """
-
-    def __init__(self):
-        self.kill_event = Event()
-        self.mouse_process = CalibratedSphereReaderProcess(kill_event=self.kill_event)
-
-        self.streamer = DataStreamer(sphere_data_queue=self.mouse_process.data_queue,
-                                     kill_event=self.kill_event)
-
-    def start(self):
-        self.mouse_process.start()
-        self.streamer.start()
-
-    def stop(self):
-        # streamer.close()
-        self.kill_event.set()
-        sleep(0.5)
-        self.mouse_process.join()
-        self.streamer.join()
-
-
-if __name__ == "__main__":
-    from time import sleep
-    data_streamer = SphereDataStreamer()
-    # if sphere_data_queue is None:
-    data_streamer.start()
-    sleep(5)
-    data_streamer.stop()
+        super().__init__()
 

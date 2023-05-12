@@ -19,10 +19,19 @@ from sisyphy.utils.dataclasses import TimestampedDataClass
 # Streaming dataclasses between processes does impact performance a bit, but hopefully not to a meaningful degree
 # (18 us vs 14 us / it for something with 2 integers and a timestamp, vs an equivalent tuple)
 @dataclass
-class RawMiceSphereData:
+class RawMiceData:
     """Dataclass to keep together velocity data from two mice."""
     mouse0: MouseVelocityData
     mouse1: MouseVelocityData
+
+
+@dataclass
+class RawVelSphereData(TimestampedDataClass):
+    """Dataclass to keep together velocity data from two mice."""
+    x0: int
+    y0: int
+    x1: int
+    y1: int
 
 
 @dataclass
@@ -57,8 +66,8 @@ class SphereReaderProcess(Process, metaclass=abc.ABCMeta):
     def _setup_mice(self) -> None:
         pass
 
-    def _read_mice(self) -> RawMiceSphereData:
-        return RawMiceSphereData(
+    def _read_mice(self) -> RawMiceData:
+        return RawMiceData(
             mouse0=self.mouse0.get_velocities(), mouse1=self.mouse1.get_velocities()
         )
 
@@ -86,7 +95,12 @@ class MockSphereReaderProcess(SphereReaderProcess):
         self.mouse1 = MockMouse()
 
     def _get_message(self):
-        return self._read_mice()
+        mice_data = self._read_mice()
+
+        return RawVelSphereData(
+            x0=mice_data.mouse0.x, y0=mice_data.mouse0.y,
+            x1=mice_data.mouse1.x, y1=mice_data.mouse1.y,
+        )
 
 
 class UsbSphereReaderProcess(SphereReaderProcess, metaclass=abc.ABCMeta):
@@ -99,8 +113,8 @@ class UsbSphereReaderProcess(SphereReaderProcess, metaclass=abc.ABCMeta):
 
 class RawUsbSphereReaderProcess(UsbSphereReaderProcess):
     """Read raw data from the mice of a USB Sphere."""
-    def _get_message(self):
-        return self._read_mice()
+    #def _get_message(self):
+    #    return self._read_mice()
 
 
 class CalibratedSphereReaderProcess(UsbSphereReaderProcess):
@@ -132,20 +146,3 @@ class CalibratedSphereReaderProcess(UsbSphereReaderProcess):
             x0=mice_data.mouse0.x, y0=mice_data.mouse0.y,
             x1=mice_data.mouse1.x, y1=mice_data.mouse1.y,
         )
-
-
-
-
-
-#
-# class ReadProcess(Process):
-#     def __init__(self, *args, data_queue: SaturatingQueue, kill_event: Event, **kwargs):
-#         self.kill_event = kill_event
-#         self.data_queue = data_queue
-#         self.accumulator = QueueDataAccumulator(data_queue=data_queue)
-#         super(ReadProcess, self).__init__(*args, **kwargs)
-#
-#     def run(self) -> None:
-#         while not self.kill_event.is_set():
-#             self.accumulator.update_list()
-#         print("here", len(self.accumulator.stored_data))
