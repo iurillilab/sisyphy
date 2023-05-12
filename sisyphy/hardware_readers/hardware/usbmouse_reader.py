@@ -1,10 +1,17 @@
 from time import time_ns
 from typing import Tuple
+import abc
+from dataclasses import dataclass
 
 import numpy as np
 import usb1
+from sisyphy.utils.dataclasses import TimestampedDataClass
 
-from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
+@dataclass
+class MouseVelocityData(TimestampedDataClass):
+    """Timestamped values for mouse motion over the two coordinates."""
+    x: float
+    y: float
 
 
 def _u2s(u, d):
@@ -16,15 +23,34 @@ def _u2s(u, d):
         return float((d - 255) * 256 - 256 + u)
 
 
-class Mouse:
+class AbstractMouse(metaclass=abc.ABCMeta):
+    """Base interface for reading movement velocity from a mouse.
+
+    Public methods
+    --------------
+
+        self.read_velocity:
+            returns a MouseVelocity data class with x and y velocities.
+
+    Private methods
+    ---------------
+        _read_velocity:
+            Method to implement in subclasses for reading the actual data from the mouse.
+
+        _initialise_mouse:
+            Method to implement in subclasses for initializing the mouse.
+
+    """
     def __init__(self):
-        """Base class for reading velocity from a mouse."""
+
         self.mouse = None
         self._initialise_mouse()
 
+    @abc.abstractmethod
     def _initialise_mouse(self) -> None:
         pass
 
+    @abc.abstractmethod
     def _read_velocities(self) -> Tuple[float, float]:
         """Empty method to velocities from hardware."""
         pass
@@ -35,7 +61,12 @@ class Mouse:
         return MouseVelocityData(x=x, y=y)
 
 
-class DummyMouse(Mouse):
+class MockMouse(AbstractMouse):
+    """Interface to a fake mouse for testing purposes.
+    Implements the _read_velocities method to give random data."""
+
+    TIMESTEP_NS = 50000000  # timestep between emitted velocities
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.starting_t = time_ns()
@@ -43,18 +74,24 @@ class DummyMouse(Mouse):
         self.phase_y = np.random.randn()
         self.prev_elapsed = 0
 
+    def _read_mouse(self) -> None:
+        pass
+
     def _read_velocities(self) -> Tuple[float, float]:
         elapsed = 0
-        while elapsed - self.prev_elapsed < 50000000:
+        while elapsed - self.prev_elapsed < self.TIMESTEP_NS:
             elapsed = time_ns() - self.starting_t
         self.prev_elapsed = elapsed
         return np.random.randn(), np.random.randn()
 
 
-class WinUsbMouse(Mouse):
-    def __init__(self, ind=0, ig_id_vendor=0x046D, ig_id_product=0xC08B):
-        """Minimal class to instantiate and read from a mouse configured using the WinUSB drivers.
+class WinUsbMouse(AbstractMouse):
+    """Interface to a mouse configured using the WinUSB drivers.
+    Implements the _read_velocities method to read data from the real mouse.
+    """
 
+    def __init__(self, ind=0, ig_id_vendor=0x046D, ig_id_product=0xC08B):
+        """
         Parameters
         ----------
         ind : int
@@ -69,7 +106,7 @@ class WinUsbMouse(Mouse):
         self.ig_id_product = ig_id_product
         super().__init__()
 
-    def _initialise_mouse(self):
+    def _initialise_mouse(self) -> None:
         # Find our device:
         ctx = usb1.LibUSBContext()
         usb_devices = ctx.getDeviceList()
@@ -84,8 +121,8 @@ class WinUsbMouse(Mouse):
         self.mouse = matching_devices[self.ind].open()
         self.mouse.claimInterface(0)
 
-    def _read_velocities(self):
-        """Read instantaneous velocity from a mouse. No timeout argument to pass as it does not seem to do anything.
+    def _read_velocities(self) -> Tuple[float, float]:
+        """Read instantaneous velocity from a mouse.
 
         Returns
         -------
@@ -109,14 +146,16 @@ if __name__ == "__main__":
 
     mouse0, mouse1 = WinUsbMouse(ind=0), WinUsbMouse(ind=1)
 
-    COUNTER = 10000
+    COUNTER = 1000
     pos_arr = np.empty((5, COUNTER))
     t0 = datetime.now()
     for i in range(COUNTER):
         if i % 100 == 0:
             print(i)
-        x0, y0 = mouse1.get_velocities()
-        x1, y1 = mouse1.get_velocities()
+        vels = mouse1.get_velocities()
+        x0, y0 = vels.x, vels.y
+        vels = mouse1.get_velocities()
+        x1, y1 = vels.x, vels.y
         pos_arr[:, i] = (x0, x1, y0, y1, (datetime.now() - t0).total_seconds())
         t0 = datetime.now()
     pos_arr[4, :] = np.cumsum(pos_arr[4, :])

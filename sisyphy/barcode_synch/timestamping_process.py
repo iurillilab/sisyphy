@@ -70,7 +70,7 @@ class NiTimeStampProcess(Process):
             task_idx, event_type, num_samples, callback_data=None
         ):
             """This callback is called every time a defined amount of samples has been acquired.
-            Thisfunction must follow prototype defined in nidaqxm documentation.
+            This function must follow prototype defined in nidaqxm documentation.
             Args:
                 ...
                 num_samples (int): Number of samples that were read into the read buffer.

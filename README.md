@@ -1,12 +1,31 @@
 # sisyphy
 Minimal code for handling acquisition of position from a spherical treadmill.
 
+## Package organization
+
+### `hardware_readers`
+This module contains the interface to the hardware - the spherical threadmill and the mice that read it.
+
+The core classes from here are:
+- `RawUsbSphereReaderProcess`: process that reads raw speeds from the sphere mice and streams them in a queue.
+- `CalibratedSphereReaderProcess`: process that streams calibrated data in the queue.
+
+### `streamers`
+The core abstract interface class of the package is `MouseStreamer`. It implements a process that runs and streams mouse velocities. Subclasses implement specific streamers:
+- `TCPMouseStreamer`: stream mouse data using TCP protocol.
+- `ZMQMouseStreamer`: stream mouse data using ZMQ.
+
+
+### `mat`
+
+The mat folder contains a MATLAB code snippet that can be used to read the TCP streamed velocities in MATLAB, to use them to control a virtual environment with the VIRmEm software.
+
 ## Time synchronization
 This package also include code for synching the acquisition with Arduino-generated barcodes using the system described [here](https://optogeneticsandneuralengineeringcore.gitlab.io/ONECoreSite/projects/DAQSyncronization/) from the Optogenetics and Neural Engineering (ONE) Core at the University of Colorado School of Medicine.
 
 In the future this code might be moved to an independent package.
 
-## WIP notes
+## Hardware configuration
 
 ### Mouse reading
 To read mouse in python:

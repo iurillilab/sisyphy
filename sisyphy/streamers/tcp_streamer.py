@@ -2,7 +2,7 @@ import socket
 
 import numpy as np
 
-from sisyphy.estimators.base import Estimator
+from sisyphy.streamers.base import SocketStreamer
 
 TIMEOUT = 0.001  # timeout for waiting for data request
 
@@ -15,16 +15,17 @@ def _prepare_for_tcp(velocities):
     return bytes([_normalize(velocities.pitch), _normalize(velocities.yaw)])
 
 
-class TcpEstimator(Estimator):
+class TcpMouseStreamer(SocketStreamer):
+    """Estimator that communicate the average velocities when queried on a TCP port."""
     def __init__(self, *args, address: str = "127.0.0.1", port: int = 65432, **kwargs):
-        """Estimator that communicate the average velocities when queried on a TCP port.
+        """
 
         Parameters
         ----------
         address : str
         port
         """
-        super(TcpEstimator, self).__init__(*args, **kwargs)
+        super(TcpMouseStreamer, self).__init__(*args, **kwargs)
 
         self.address = address
         self.port = port
@@ -44,14 +45,10 @@ class TcpEstimator(Estimator):
                     try:
                         data = conn.recv(1024)
 
-                        if data == b"read_velocities":
-                            #     vals = np.random.randint(-127, 127, 2) + 127
-                            #     # print(vals)
-                            velocities = self.average_values
-                            print(velocities)
-                            if len(velocities) > 0:
-                                print(velocities.yaw, velocities.pitch)
-                                conn.sendall(_prepare_for_tcp(velocities))
+                        if data == bytes(self.query_string):
+                            if len(self.average_values) > 0:
+                                print("sending", self.average_values.yaw, self.average_values.pitch)
+                                conn.sendall(_prepare_for_tcp(self.average_values))
                             else:
                                 conn.sendall(bytes([0, 0]))
 
@@ -70,7 +67,7 @@ if __name__ == "__main__":
 
     kill_event = Event()
     mouse_process = SphereVelocityProcess(kill_event=kill_event)
-    p = TcpEstimator(sphere_data_queue=mouse_process.data_queue, kill_event=kill_event)
+    p = TcpMouseStreamer(sphere_data_queue=mouse_process.data_queue, kill_event=kill_event)
     mouse_process.start()
     p.start()
     # sleep(10)

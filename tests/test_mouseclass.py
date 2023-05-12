@@ -1,4 +1,4 @@
-from sisyphy.sphere_velocity.hardware.usbmouse import DummyMouse
+from sisyphy.sphere_velocity.hardware.usbmouse_reader import DummyMouse
 from sisyphy.sphere_velocity.sphere_dataclasses import MouseVelocityData
 
 
