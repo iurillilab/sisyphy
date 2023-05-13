@@ -1,15 +1,18 @@
-from time import time_ns
-from typing import Tuple
 import abc
 from dataclasses import dataclass
+from time import time_ns
+from typing import Tuple
 
 import numpy as np
 import usb1
+
 from sisyphy.utils.dataclasses import TimestampedDataClass
+
 
 @dataclass
 class MouseVelocityData(TimestampedDataClass):
     """Timestamped values for mouse motion over the two coordinates."""
+
     x: int
     y: int
 
@@ -32,6 +35,7 @@ class AbstractMouse(metaclass=abc.ABCMeta):
             Method to implement in subclasses for initializing the mouse.
 
     """
+
     def __init__(self):
 
         self.mouse = None

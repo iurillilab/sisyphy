@@ -6,7 +6,6 @@ import os
 from datetime import datetime
 from multiprocessing import Process, freeze_support
 
-
 import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
@@ -15,6 +14,7 @@ from pyqtgraph.Qt import QtGui
 from sisyphy import MockDataStreamer
 
 app = pg.mkQApp("GLMeshItem Example")
+
 
 class CustomGLViewWidget(gl.GLViewWidget):
     def __init__(self, *args, kill_event, **kwargs):
@@ -58,7 +58,7 @@ class PLT:
         QtGui.QApplication.processEvents()
 
 
-class receiver(Process):
+class Receiver(Process):
     def __init__(self, data_queue, kill_evt):
         Process.__init__(self)
         self.data_queue = data_queue
@@ -87,25 +87,19 @@ class receiver(Process):
 
 
 if __name__ == "__main__":
-    from time import sleep
     from multiprocessing import Event
+    from time import sleep
+
     print("MAIN PID: ", os.getpid())
 
     freeze_support()
     kill_evt = Event()
 
     data_streamer = MockDataStreamer(kill_event=kill_evt)
-    receiv = receiver(data_queue=data_streamer.output_queue, kill_evt=kill_evt)
+    receiv = Receiver(data_queue=data_streamer.output_queue, kill_evt=kill_evt)
     data_streamer.start()
     receiv.start()
 
-    # plt = PLT(kill_evt)
-
-
-
-
-    #sleep(2)
-    #data_streamer.stop()
     """
     
 

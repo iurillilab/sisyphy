@@ -1,9 +1,12 @@
-from multiprocessing import Event
 import abc
-from sisyphy.hardware_readers import CalibratedSphereReaderProcess, MockSphereReaderProcess
-from sisyphy.streamers import DataStreamer
-
+from multiprocessing import Event
 from time import sleep
+
+from sisyphy.hardware_readers import (
+    CalibratedSphereReaderProcess,
+    MockSphereReaderProcess,
+)
+from sisyphy.streamers import DataStreamer
 
 
 class SphereDataStreamer(metaclass=abc.ABCMeta):
@@ -20,11 +23,20 @@ class SphereDataStreamer(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, kill_event=None, mouse_reader_process_class=None, data_streamer_class=None):
+    def __init__(
+        self,
+        kill_event=None,
+        mouse_reader_process_class=None,
+        data_streamer_class=None,
+        data_path=None,
+    ):
         self.kill_event = kill_event if kill_event is not None else Event()
         self.mouse_process = mouse_reader_process_class(kill_event=self.kill_event)
-        self.streamer = data_streamer_class(sphere_data_queue=self.mouse_process.data_queue,
-                                     kill_event=self.kill_event)
+        self.streamer = data_streamer_class(
+            sphere_data_queue=self.mouse_process.data_queue,
+            kill_event=self.kill_event,
+            data_path=data_path,
+        )
 
         self.output_queue = self.streamer.output_queue
 
@@ -46,11 +58,7 @@ class SphereDataStreamer(metaclass=abc.ABCMeta):
 
         self.streamer.kill()
 
-
-
         print("Killed processes.")
-
-
 
 
 class MockDataStreamer(SphereDataStreamer):
@@ -59,26 +67,28 @@ class MockDataStreamer(SphereDataStreamer):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(mouse_reader_process_class=CalibratedSphereReaderProcess,
-                                                      data_streamer_class=DataStreamer, **kwargs)
-        self.kill_event = Event()
-        self.mouse_process = MockSphereReaderProcess(kill_event=self.kill_event)
-        self.streamer = DataStreamer(sphere_data_queue=self.mouse_process.data_queue,
-                                     kill_event=self.kill_event)
+        super().__init__(
+            mouse_reader_process_class=MockSphereReaderProcess,
+            data_streamer_class=DataStreamer,
+            **kwargs,
+        )
 
 
 class MouseSphereDataStreamer(SphereDataStreamer):
-    """Implementation of SphereDataStreamer using the CalibratedSphereReaderProcess.
-    """
+    """Implementation of SphereDataStreamer using the CalibratedSphereReaderProcess."""
 
     def __init__(self, **kwargs):
-        super().__init__(mouse_reader_process_class=CalibratedSphereReaderProcess,
-                                                      data_streamer_class=DataStreamer, **kwargs)
+        super().__init__(
+            mouse_reader_process_class=CalibratedSphereReaderProcess,
+            data_streamer_class=DataStreamer,
+            **kwargs,
+        )
 
 
 if __name__ == "__main__":
     from time import sleep
-    data_streamer = MockDataStreamer()
+
+    data_streamer = MockDataStreamer(data_path="/Users/vigji/Desktop")
     data_streamer.start()
     sleep(5)
     data_streamer.stop()

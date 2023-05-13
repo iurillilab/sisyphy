@@ -17,6 +17,7 @@ def _prepare_for_tcp(velocities):
 
 class TcpMouseStreamer(SocketStreamer):
     """Estimator that communicate the average velocities when queried on a TCP port."""
+
     def __init__(self, *args, address: str = "127.0.0.1", port: int = 65432, **kwargs):
         """
 
@@ -47,7 +48,11 @@ class TcpMouseStreamer(SocketStreamer):
 
                         if data == bytes(self.query_string):
                             if len(self.average_values) > 0:
-                                print("sending", self.average_values.yaw, self.average_values.pitch)
+                                print(
+                                    "sending",
+                                    self.average_values.yaw,
+                                    self.average_values.pitch,
+                                )
                                 conn.sendall(_prepare_for_tcp(self.average_values))
                             else:
                                 conn.sendall(bytes([0, 0]))
@@ -67,7 +72,9 @@ if __name__ == "__main__":
 
     kill_event = Event()
     mouse_process = SphereVelocityProcess(kill_event=kill_event)
-    p = TcpMouseStreamer(sphere_data_queue=mouse_process.data_queue, kill_event=kill_event)
+    p = TcpMouseStreamer(
+        sphere_data_queue=mouse_process.data_queue, kill_event=kill_event
+    )
     mouse_process.start()
     p.start()
     # sleep(10)

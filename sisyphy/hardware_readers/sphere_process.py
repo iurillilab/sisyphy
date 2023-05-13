@@ -1,8 +1,8 @@
+import abc
+from dataclasses import dataclass
 from multiprocessing import Process
 
 import numpy as np
-from dataclasses import dataclass
-import abc
 
 from sisyphy.hardware_readers.defaults import BALL_CALIBRATION
 from sisyphy.hardware_readers.hardware.usbmouse_reader import (
@@ -10,7 +10,6 @@ from sisyphy.hardware_readers.hardware.usbmouse_reader import (
     MouseVelocityData,
     WinUsbMouse,
 )
-
 from sisyphy.utils.custom_queue import SaturatingQueue
 from sisyphy.utils.dataclasses import TimestampedDataClass
 
@@ -21,6 +20,7 @@ from sisyphy.utils.dataclasses import TimestampedDataClass
 @dataclass
 class RawMiceData:
     """Dataclass to keep together velocity data from two mice."""
+
     mouse0: MouseVelocityData
     mouse1: MouseVelocityData
 
@@ -28,6 +28,7 @@ class RawMiceData:
 @dataclass
 class RawVelSphereData(TimestampedDataClass):
     """Dataclass to keep together velocity data from two mice."""
+
     x0: int
     y0: int
     x1: int
@@ -37,6 +38,7 @@ class RawVelSphereData(TimestampedDataClass):
 @dataclass
 class EstimatedVelSphereData(TimestampedDataClass):
     """Estimated yaw, pitch and roll from the data from two mice."""
+
     pitch: float
     roll: float
     yaw: float
@@ -47,8 +49,8 @@ class EstimatedVelSphereData(TimestampedDataClass):
 
 
 class SphereReaderProcess(Process, metaclass=abc.ABCMeta):
-    """Abstract class to interface with a sphere that is read by two mice, and its velocities are streamed.
-    """
+    """Abstract class to interface with a sphere that is read by two mice, and its velocities are streamed."""
+
     def __init__(self, kill_event):
         """
         Parameters
@@ -98,8 +100,10 @@ class MockSphereReaderProcess(SphereReaderProcess):
         mice_data = self._read_mice()
 
         return RawVelSphereData(
-            x0=mice_data.mouse0.x, y0=mice_data.mouse0.y,
-            x1=mice_data.mouse1.x, y1=mice_data.mouse1.y,
+            x0=mice_data.mouse0.x,
+            y0=mice_data.mouse0.y,
+            x1=mice_data.mouse1.x,
+            y1=mice_data.mouse1.y,
         )
 
 
@@ -113,7 +117,8 @@ class UsbSphereReaderProcess(SphereReaderProcess, metaclass=abc.ABCMeta):
 
 class RawUsbSphereReaderProcess(UsbSphereReaderProcess):
     """Read raw data from the mice of a USB Sphere."""
-    #def _get_message(self):
+
+    # def _get_message(self):
     #    return self._read_mice()
 
 
@@ -142,7 +147,11 @@ class CalibratedSphereReaderProcess(UsbSphereReaderProcess):
         transformed = self._trasform_coords(arr)
 
         return EstimatedVelSphereData(
-            pitch=transformed[0], yaw=transformed[1], roll=-transformed[2],
-            x0=mice_data.mouse0.x, y0=mice_data.mouse0.y,
-            x1=mice_data.mouse1.x, y1=mice_data.mouse1.y,
+            pitch=transformed[0],
+            yaw=transformed[1],
+            roll=-transformed[2],
+            x0=mice_data.mouse0.x,
+            y0=mice_data.mouse0.y,
+            x1=mice_data.mouse1.x,
+            y1=mice_data.mouse1.y,
         )

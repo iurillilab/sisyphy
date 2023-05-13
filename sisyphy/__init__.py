@@ -5,5 +5,8 @@
 
 __all__ = ["SphereDataStreamer", "MouseSphereDataStreamer", "MockDataStreamer"]
 
-from sisyphy.core import SphereDataStreamer, MouseSphereDataStreamer, MockDataStreamer
-
+from sisyphy.core import (
+    MockDataStreamer,
+    MouseSphereDataStreamer,
+    SphereDataStreamer,
+)

@@ -1,8 +1,8 @@
 from multiprocessing import Event
 from time import sleep
 
-from sisyphy.streamers import MouseStreamer
 from sisyphy.sphere_velocity import DummyVelocityProcess
+from sisyphy.streamers import MouseStreamer
 
 
 def test_base_estimator():
