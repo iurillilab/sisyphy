@@ -1,6 +1,7 @@
 import abc
 from multiprocessing import Event
 from time import sleep
+from multiprocessing import Queue, Process
 
 from sisyphy.hardware_readers import (
     CalibratedSphereReaderProcess,
@@ -41,6 +42,7 @@ class SphereDataStreamer(metaclass=abc.ABCMeta):
         self.output_queue = self.streamer.output_queue
 
     def start(self):
+        print("starting processes")
         self.mouse_process.start()
         self.streamer.start()
 
@@ -56,7 +58,7 @@ class SphereDataStreamer(metaclass=abc.ABCMeta):
             self.mouse_process.data_queue.get()
         print("Emptied data queue.")
 
-        self.streamer.kill()
+        # self.streamer.kill()
 
         print("Killed processes.")
 
@@ -88,7 +90,18 @@ class MouseSphereDataStreamer(SphereDataStreamer):
 if __name__ == "__main__":
     from time import sleep
 
-    data_streamer = MockDataStreamer(data_path="/Users/vigji/Desktop")
+    #kill_evt = Event()
+    #stopper = ProcessStopper(kill_evt)
+    data_streamer = MouseSphereDataStreamer(data_path=r"E:\Luigi")  #, kill_event=kill_evt)
     data_streamer.start()
-    sleep(5)
+    # stopper.start()
+    t = ((5)*60)
+    print(t)
+    sleep(t)
+    print("recorded 45 minutes of data")
+    #while True:
+     #   key = input("Press q to quit.")
+     #   if key == "q":
+       #     break
+
     data_streamer.stop()

@@ -157,8 +157,8 @@ if __name__ == "__main__":
     pos_arr = np.empty((5, COUNTER))
     t0 = datetime.now()
     for i in range(COUNTER):
-        if i % 100 == 0:
-            print(i)
+        #if i % 100 == 0:
+         #   print(i)
         vels = mouse1.get_velocities()
         x0, y0 = vels.x, vels.y
         vels = mouse1.get_velocities()

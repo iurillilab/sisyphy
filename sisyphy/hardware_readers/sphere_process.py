@@ -111,6 +111,7 @@ class UsbSphereReaderProcess(SphereReaderProcess, metaclass=abc.ABCMeta):
     """A - still abstract - class to read sphere velocity with WinUSB mice."""
 
     def _setup_mice(self) -> None:
+        # print("Setting up mice")
         self.mouse0 = WinUsbMouse(ind=0)
         self.mouse1 = WinUsbMouse(ind=1)
 
@@ -133,7 +134,7 @@ class CalibratedSphereReaderProcess(UsbSphereReaderProcess):
 
     def _get_message(self):
         mice_data = self._read_mice()
-
+         # print(mice_data)
         # sequence for transformation is M0_x, M0_y, M1_x, M1_y:
         arr = np.array(
             [

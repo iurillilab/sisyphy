@@ -69,7 +69,7 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
 
         while i > 0:
             if (now - self._past_times[i]) > (self._time_to_avg_s * 1e9):
-                print(i, len(self._past_times) - i)
+                # print(i, len(self._past_times) - i)
                 break
             else:
                 i -= 1
@@ -92,13 +92,14 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
     def save_data(self):
         if self.data_path is None:
             return
-
+        self.data_path.mkdir(parents=True, exist_ok=True)
         data_df = pd.DataFrame(self._past_data_list)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         data_df.to_csv(self.data_path / f"{timestamp}_data.csv")
         print(f"Saved data to {self.data_path}.")
 
     def run(self) -> None:
+        print("running streamer process.")
         self.t_start = time_ns()
         i = 0
         while not self.kill_event.is_set():
@@ -113,10 +114,10 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
                     data_string = "".join(
                         [f"{key}: {val}  - " for key, val in vals_dict.items()]
                     )
-                    print(f"Average values: {data_string}")
+                    #print(f"Average values: {data_string}")
 
-                    self.output_queue.put(avg_vals)
-                    print(self.output_queue)
+                    # self.output_queue.put(avg_vals)
+                    # print(self.output_queue)
             i += 1
 
         self.save_data()
