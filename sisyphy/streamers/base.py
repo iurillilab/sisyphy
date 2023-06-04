@@ -4,6 +4,7 @@ from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
 from time import time_ns
+import csv
 
 import pandas as pd
 
@@ -121,6 +122,75 @@ class DataStreamer(Process, metaclass=abc.ABCMeta):
             i += 1
 
         self.save_data()
+
+
+class FileDataStreamer(Process):
+    """Data to file streamer of data from a SphereReaderProcess, implementing some utils
+    """
+
+    def __init__(
+        self,
+        *args,
+        kill_event: Event = None,
+        sphere_data_queue=None,
+        data_path: str = None,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        kill_event : Event
+            Termination event.
+        sphere_data_queue : Queue
+            Queue to read data from.
+
+        """
+        super().__init__(*args, **kwargs)
+
+        self.kill_event = kill_event if kill_event is not None else Event()
+        self._sphere_data_queue = sphere_data_queue
+
+        self.data_path = Path(data_path) if data_path is not None else None
+
+        self._past_data_list = []
+        self._past_times = []
+        self.t_start = time_ns()
+
+
+    def fetch_data(self):
+        """Update internal data lists."""
+        pass
+        # self._past_data_list.extend(retrieved_data)
+        # self._past_times.extend([d.t_ns for d in retrieved_data])
+
+    def run(self) -> None:
+        self.data_path.mkdir(parents=True, exist_ok=True)
+        # data_df = pd.DataFrame(self._past_data_list)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = self.data_path / f"{timestamp}_data.csv"
+        # data_df.to_csv()
+        print(f"Streaming data to {filename}.")
+        file = open(filename, 'w', newline='')
+        header = None
+
+        with filename.open('w', newline='') as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+            self.t_start = time_ns()
+
+            while not self.kill_event.is_set():
+
+                retrieved_data = self._sphere_data_queue.get_all()
+                if len(retrieved_data) > 0:
+                    if header is None:
+                        header = retrieved_data[0].__dict__.keys()
+                        writer.writerow(header)
+
+                    for data in retrieved_data:
+                        writer.writerow(data.__dict__.values())
+
+
+        # file.close()
+        print("Done streaming data.")
 
 
 class SocketStreamer(DataStreamer, metaclass=abc.ABCMeta):

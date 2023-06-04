@@ -7,7 +7,7 @@ from sisyphy.hardware_readers import (
     CalibratedSphereReaderProcess,
     MockSphereReaderProcess,
 )
-from sisyphy.streamers import DataStreamer
+from sisyphy.streamers import DataStreamer, FileDataStreamer
 
 
 class SphereDataStreamer(metaclass=abc.ABCMeta):
@@ -38,8 +38,10 @@ class SphereDataStreamer(metaclass=abc.ABCMeta):
             kill_event=self.kill_event,
             data_path=data_path,
         )
-
-        self.output_queue = self.streamer.output_queue
+        if hasattr(self.streamer, "output_queue"):
+            self.output_queue = self.streamer.output_queue
+        else:
+            self.output_queue = None
 
     def start(self):
         print("starting processes")
@@ -47,18 +49,21 @@ class SphereDataStreamer(metaclass=abc.ABCMeta):
         self.streamer.start()
 
     def stop(self):
+        print("Stopping processes.")
         self.kill_event.set()
         sleep(0.5)
+        print("Set kill event.")
+        print("Joined mouse process.")
         self.mouse_process.join()
-
-        while not self.output_queue.empty():
-            self.output_queue.get()
-        print("Emptied output queue.")
+        if self.output_queue is not None:
+            while not self.output_queue.empty():
+                self.output_queue.get()
+            print("Emptied output queue.")
         while not self.mouse_process.data_queue.empty():
             self.mouse_process.data_queue.get()
         print("Emptied data queue.")
 
-        # self.streamer.kill()
+        self.streamer.join()
 
         print("Killed processes.")
 
@@ -82,7 +87,7 @@ class MouseSphereDataStreamer(SphereDataStreamer):
     def __init__(self, **kwargs):
         super().__init__(
             mouse_reader_process_class=CalibratedSphereReaderProcess,
-            data_streamer_class=DataStreamer,
+            data_streamer_class=FileDataStreamer,
             **kwargs,
         )
 
