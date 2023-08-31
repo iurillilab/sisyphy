@@ -133,6 +133,7 @@ class FileDataStreamer(Process):
         *args,
         kill_event: Event = None,
         sphere_data_queue=None,
+        passover_queue=None,
         data_path: str = None,
         **kwargs,
     ):
@@ -149,6 +150,7 @@ class FileDataStreamer(Process):
 
         self.kill_event = kill_event if kill_event is not None else Event()
         self._sphere_data_queue = sphere_data_queue
+        self._passover_queue = passover_queue
 
         self.data_path = Path(data_path) if data_path is not None else None
 
@@ -180,7 +182,11 @@ class FileDataStreamer(Process):
             while not self.kill_event.is_set():
 
                 retrieved_data = self._sphere_data_queue.get_all()
+
                 if len(retrieved_data) > 0:
+                    if self._passover_queue is not None:
+                        self._passover_queue.put(retrieved_data[0])
+
                     if header is None:
                         header = retrieved_data[0].__dict__.keys()
                         writer.writerow(header)

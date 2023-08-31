@@ -101,12 +101,7 @@ if __name__ == "__main__":
     data_streamer.start()
     # stopper.start()
     t = ((5)*60)
-    print(t)
+
     sleep(t)
-    print("recorded 45 minutes of data")
-    #while True:
-     #   key = input("Press q to quit.")
-     #   if key == "q":
-       #     break
 
     data_streamer.stop()
