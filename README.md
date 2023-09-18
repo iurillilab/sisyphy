@@ -1,5 +1,9 @@
 # sisyphy
-Minimal code for handling acquisition of position from a spherical treadmill.
+Minimal code for handling data acquisition and position extraction from the spherical treadmill VR system described in [Shapcott et al, 2022](https://www.biorxiv.org/content/10.1101/2022.04.04.486889v1.full.pdf) ([here](https://www.3dneuro.com/open-hardware/spherical-treadmill/) 3D printing files & hardware instructions). 
+
+This package is a Python-based alternative to the original Unreal Engine system. Although Python-based, it offers a set of tools to stream the data via ZeroMQ or tcp protocols, to interface it with custom applications (e.g. with MATLAB, using [ViRMEn](http://pni.princeton.edu/pni-software-tools/virmen), or [Bonsai-RX](https://bonsai-rx.org)).
+
+The project is very much under development at the moment. Although the core components are mature and will probably be stable, there's still a lot to polish in the specifics of interfaces. It is still very open to suggestions, so feedbacks are welcome!
 
 ## Package organization
 
@@ -28,7 +32,7 @@ In the future this code might be moved to an independent package.
 ## Hardware configuration
 
 ### Mouse reading
-To read mouse in python:
+Detailled instructions on the hardware configuration can be found in the [original setup description](https://www.3dneuro.com/open-hardware/spherical-treadmill/). In brief, to make the mouse readable in Python:
 
 1) figure out vendor and device id. The following could help, knowing ie the Logitech vendor id (`0x046d`):
 
