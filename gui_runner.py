@@ -1,5 +1,9 @@
 # Small interface to stop the streaming process when a button is pressed.
+from collections.abc import Callable, Iterable, Mapping
 from time import sleep
+from typing import Any
+from queue import Empty
+from collections import deque
 from sisyphy.core import MouseSphereDataStreamer
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QSlider, QPushButton
@@ -9,20 +13,28 @@ from multiprocessing import Process, Queue, Event
 import qdarkstyle  # Import qdarkstyle
 import time
 
+from arrayqueues import ArrayQueue, TimestampedArrayQueue
+
+import numpy as np
+
 
 class StopButton(QMainWindow):
-    def __init__(self, streamer, _passover_queue=None, running_event=None):
+    def __init__(self, streamer, ingestor,
+                 stream_window=None):
         super().__init__()
         self.streamer = streamer
+        self.ingestor = ingestor
+        
         self.initUI()
 
+        self.stream_window = stream_window
+
+        self.ingestor.start()
         self.streamer.start()
 
-        if _passover_queue is not None:
-            self.stream_window = RealTimePlotApp(_passover_queue, running_event)
+
+        if stream_window is not None:
             self.stream_window.show()
-        else:
-            self.stream_window = None
 
 
     def initUI(self):
@@ -45,8 +57,97 @@ class StopButton(QMainWindow):
             self.stream_window.close()
         super().close()
 
+
+class DataQueueIngestor(Process):
+    def __init__(self, data_queue: Queue,
+                 query_queue: Queue, 
+                 dataplot_queue: Queue,
+                 running_event: Event,
+                 max_history_len: float = 300000) -> None:
+        
+        super().__init__()
+        self.data_queue = data_queue
+        self.max_history_len = max_history_len
+        self.query_queue = query_queue
+        self.dataplot_queue = dataplot_queue
+        self.running_event = running_event
+
+        self.data_list = deque(maxlen=int(self.max_history_len))
+        self.times_list = deque(maxlen=int(self.max_history_len))
+
+    def run(self) -> None:
+
+        # constantly retrieving all data from the queue:
+
+        while self.running_event.is_set():
+            while not self.data_queue.empty():
+                data = self.data_queue.get(block=False)
+                self.data_list.append(data)
+                self.times_list.append(data.t_ns)
+
+            # print("Ingested data: ", len(self.data_list))
+
+            try:
+                # constantly checking for new queries:
+                query = self.query_queue.get(timeout=0.1)
+
+                print("Got query: ", query)
+                
+                now_time = time.time_ns()
+
+                # Read time to retrieve from query dict:
+                time_to_retrieve = query.pop("time_interval")
+
+                vals_to_retrieve = query.keys()
+
+                # Retrieve data from the queue:
+                first_index = 0
+                for timept in self.times_list:
+                    first_index += 1
+                    if timept > now_time - time_to_retrieve*(10**9):
+                        break
+                print("First index: ", first_index, " timept: ")
+
+                vals_to_retrieve = list(vals_to_retrieve) + ["t_ns"]
+                n_heads = len(vals_to_retrieve)
+                n_vals = len(self.times_list) - first_index
+
+                if n_vals > 0 and n_heads > 0:
+                    retrieved_array = np.empty((n_vals, n_heads), dtype=np.float64)
+
+                    for head_i, head_name in enumerate(vals_to_retrieve):
+                        for val_n, val_idx in enumerate(range(first_index, len(self.times_list))):
+                            retrieved_array[val_n, head_i] = getattr(self.data_list[val_idx], head_name)
+
+                    self.dataplot_queue.put(retrieved_array)
+                print("Sending back: ", n_vals)
+
+            except Empty:
+                pass
+
+                
+        # Create a dict to store the retrieved data:
+        #for idx in range(first_index, len(self.times_queue)):
+        #    query[val].append(self.data_queue[index][val])
+
+        # while not self.data_queue.empty():
+        #     new_data = self.data_queue.get()
+        #     # new_time = new_data.t_ns
+        #     # if self.start_time is None:
+        #     #     self.start_time = new_time
+        #     # new_time = (new_time - self.start_time) / 1e9
+
+        #     for i, attr in enumerate(self.vals_to_plot):
+        #         new_y = getattr(new_data, attr)
+        #         new_y = min(new_y, self.max_val)
+        #         if len(self.data_y[i]) > self.rolling_buff:
+        #             new_y = (new_y + sum(self.data_y[i][-self.rolling_buff:])) / (self.rolling_buff + 1)
+        #         self.data_y[i].append(new_y)
+        #         self.data_x[i].append(new_time)  
+
+
 class RealTimePlotApp(QWidget):
-    def __init__(self, data_queue, running_event):
+    def __init__(self, dataplot_queue, query_queue, running_event):
         super().__init__()
         self.vals_to_plot = ["x0", "y0", "x1", "y1"]
         self.rolling_buff = 10
@@ -56,7 +157,8 @@ class RealTimePlotApp(QWidget):
 
         self.setup_ui()
 
-        self.data_queue = data_queue
+        self.dataplot_queue = dataplot_queue
+        self.query_queue = query_queue
         self.running_event = running_event
 
         self.plot_widgets = []
@@ -118,37 +220,46 @@ class RealTimePlotApp(QWidget):
             self.toggle_button.setText("Start Plot Update")
 
     def update_plot(self):
+        t = time.time()
+        k = 0
 
-        while not self.data_queue.empty():
-            new_data = self.data_queue.get()
-            new_time = new_data.t_ns
-            if self.start_time is None:
-                self.start_time = new_time
-            new_time = (new_time - self.start_time) / 1e9
+        # print time elapsed in seconds:
+        # print("retrieving took: ", time.time() - t, " seconds, retrieved: ", k, " items")
 
-            for i, attr in enumerate(self.vals_to_plot):
-                new_y = getattr(new_data, attr)
-                new_y = min(new_y, self.max_val)
-                if len(self.data_y[i]) > self.rolling_buff:
-                    new_y = (new_y + sum(self.data_y[i][-self.rolling_buff:])) / (self.rolling_buff + 1)
-                self.data_y[i].append(new_y)
-                self.data_x[i].append(new_time)
-
-
-        if self.plot_update_enabled and self.start_time is not None:
-            current_time = time.time_ns()
-            current_time = (current_time - self.start_time) / 1e9
+        # Retrieve data from the queue:
+        print("Sending query...")
+        self.query_queue.put({"time_interval": self.plot_time_window, 
+                              "x0": [], "y0": [], "x1": [], "y1": []})
+        
+        
+        try:
+            vals = self.dataplot_queue.get(timeout=0.1)
+            print("Got response: ", vals[-2:, -1])
+        except Empty:
+            return
+        if self.plot_update_enabled: # and self.start_time is not None:
+            #current_time = time.time_ns()
+            #current_time = (current_time - self.start_time) / 1e9
 
             for i in range(len(self.vals_to_plot)):
                 plot_curve = self.plot_curves[i]
 
                 # Filter data to show only the last T seconds
-                min_time = current_time - self.plot_time_window
+                #min_time = current_time - self.plot_time_window
                 # print(min_time)
-                filtered_x = [x for x in self.data_x[i] if x >= min_time]
-                filtered_y = [y for j, y in enumerate(self.data_y[i]) if self.data_x[i][j] >= min_time]
+                #filtered_x = [x for x in self.data_x[i] if x >= min_time]
+                #filtered_y = [y for j, y in enumerate(self.data_y[i]) if self.data_x[i][j] >= min_time]
 
-                plot_curve.setData(filtered_x, filtered_y)
+                y = vals[:, i]
+                x = np.arange(len(y))
+                plot_curve.setData(x, y)
+                HARDBOUND = 0.1
+                min_y = min(min(y), -HARDBOUND)
+                max_y = max(max(y), HARDBOUND)
+
+                # Set y range to fit the data
+                self.plot_widgets[i].setYRange(min_y, max_y)
+                
 
     #def closeEvent(self, event):
     #    # Override the close event to prevent the window from closing
@@ -159,15 +270,29 @@ def main():
     app = QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     streamer = MouseSphereDataStreamer(data_path=r"E:\Luigi")
+    
     _passover_queue = Queue()
+    query_queue = Queue()
+    dataplot_queue = ArrayQueue()
     running_event = Event()
+    ingestor = DataQueueIngestor(_passover_queue, query_queue, 
+                                 dataplot_queue, running_event=running_event)
+
+    stream_window = RealTimePlotApp(query_queue=query_queue, 
+                                    dataplot_queue=dataplot_queue,
+                                    running_event=running_event)
+    
+    running_event.set()
+    
     streamer.streamer._passover_queue = _passover_queue
-    stop_button = StopButton(streamer, _passover_queue, running_event)
+    stop_button = StopButton(streamer=streamer,
+                             ingestor=ingestor,
+                             stream_window=stream_window)
     stop_button.show()
 
     app.aboutToQuit.connect(lambda: running_event.clear())  # Stop generator process when app is closed
     app.aboutToQuit.connect(lambda: streamer.stop())  # Stop generator process when app is closed
-
+    app.aboutToQuit.connect(lambda: ingestor.join())  # Stop generator process when app is closed
     sys.exit(app.exec_())
 
 

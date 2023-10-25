@@ -99,28 +99,3 @@ if __name__ == "__main__":
     receiv = Receiver(data_queue=data_streamer.output_queue, kill_evt=kill_evt)
     data_streamer.start()
     receiv.start()
-
-    """
-    
-
-
-
-    
-    print("MAIN PID: ", os.getpid())
-    kill_evt = Event()
-    # out_pipe, in_pipe = mp.Pipe()
-    # p1 = CalibratedSphereReaderProcess(kill_event=kill_evt)
-
-    p1 = MockDataStreamer(kill_event=kill_evt)
-
-    # p1 = sender(pipe=in_pipe)
-    # p2 = receiver(data_queue=p1.output_queue, kill_evt=kill_evt)
-    p1.start()
-    
-    # p2.start()
-    print("started")
-
-
-# if __name__ == '__main__':
-#     pg.exec()
-"""
