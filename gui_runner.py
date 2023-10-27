@@ -303,7 +303,7 @@ class RealTimePlotApp(QWidget):
 def main():
     app = QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-    streamer = MouseSphereDataStreamer(data_path=r"E:\Luigi")
+    streamer = MouseSphereDataStreamer(data_path=r"E:\Luigi\behavior-bilateral\M13")
     
     _passover_queue = Queue()
     query_queue = Queue()
