@@ -7,7 +7,7 @@ TIMEOUT = 0.001  # timeout for waiting for data request
 
 
 def _normalize(val):
-    return max(min(int(val) + 127, 255), 0)
+    return max(min(int(val/8) + 127, 255), 0)
 
 
 class ZeroMQMouseStreamer(SocketStreamer):
@@ -19,7 +19,7 @@ class ZeroMQMouseStreamer(SocketStreamer):
         address : str
         port
         """
-        super(ZeroMQMouseStreamer, self).__init__(*args, **kwargs)
+        super(ZeroMQMouseStreamer, self).__init__(*args, address=address, port=port, **kwargs)
 
         self.address = address
         self.port = port
@@ -35,22 +35,25 @@ class ZeroMQMouseStreamer(SocketStreamer):
                 self.fetch_data()  # let the queue reading go
 
                 data = sock.recv(1024, zmq.NOBLOCK)
-                if data == bytes(self.query_string):
+                print(data)
+                if data == bytes(self.query_string, "utf-8"):
                     if len(self.average_values) > 0:
-                        pitch, yaw, roll = (
-                            self.average_values.pitch,
-                            self.average_values.yaw,
-                            self.average_values.roll,
+                        x0, x1, y0, y1 = (
+                            self.average_values.x0,
+                            self.average_values.x1,
+                            self.average_values.y0,
+                            self.average_values.y1,
                         )
                     else:
-                        pitch, yaw, roll = (0, 0, 0)
-                    print(
-                        "sending",
-                        f"{_normalize(pitch)},{_normalize(yaw)},{_normalize(roll)}",
-                    )
-                    sock.send_string(
-                        f"{_normalize(pitch)},{_normalize(yaw)},{_normalize(roll)}"
-                    )
+                        # pitch, yaw, roll = (0, 0, 0)
+                        x0, x1, y0, y1 = (0, 0, 0, 0)
+                    #print(
+                    ##    "sending",
+                    #    f"{_normalize(pitch)},{_normalize(yaw)},{_normalize(roll)}",
+                    #)
+                    string_to_send = f"{_normalize(x0)},{_normalize(x1)},{_normalize(y0)},{_normalize(y1)}"
+                    print(string_to_send)
+                    sock.send_string(string_to_send)
 
                 if not data:
                     break
@@ -62,10 +65,10 @@ if __name__ == "__main__":
     from multiprocessing import Event
     from time import sleep
 
-    from sisyphy.sphere_velocity import SphereVelocityProcess
+    from sisyphy.hardware_readers.sphere_process import CalibratedSphereReaderProcess
 
     kill_event = Event()
-    mouse_process = SphereVelocityProcess(kill_event=kill_event)
+    mouse_process = CalibratedSphereReaderProcess(kill_event=kill_event)
     p = ZeroMQMouseStreamer(
         sphere_data_queue=mouse_process.data_queue, kill_event=kill_event
     )

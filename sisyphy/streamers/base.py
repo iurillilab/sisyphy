@@ -202,8 +202,8 @@ class FileDataStreamer(Process):
 class SocketStreamer(DataStreamer, metaclass=abc.ABCMeta):
     """Stream velocities over a socket connection to implement in subclasses."""
 
-    def __init__(self, address, port, query_string="read_velocities"):
+    def __init__(self, address, port, *args, query_string="read_velocities", **kwargs):
         self.address = address
         self.port = port
         self.query_string = query_string
-        super().__init__()
+        super().__init__(*args, **kwargs)
