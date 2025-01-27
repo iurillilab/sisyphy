@@ -7,7 +7,8 @@ TIMEOUT = 0.001  # timeout for waiting for data request
 
 
 def _normalize(val):
-    return max(min(int(val/8) + 127, 255), 0)
+    return(int(val))
+    # return max(min(int(val/8) + 127, 255), 0)
 
 
 class ZeroMQMouseStreamer(SocketStreamer):
@@ -45,12 +46,7 @@ class ZeroMQMouseStreamer(SocketStreamer):
                             self.average_values.y1,
                         )
                     else:
-                        # pitch, yaw, roll = (0, 0, 0)
                         x0, x1, y0, y1 = (0, 0, 0, 0)
-                    #print(
-                    ##    "sending",
-                    #    f"{_normalize(pitch)},{_normalize(yaw)},{_normalize(roll)}",
-                    #)
                     string_to_send = f"{_normalize(x0)},{_normalize(x1)},{_normalize(y0)},{_normalize(y1)}"
                     print(string_to_send)
                     sock.send_string(string_to_send)

@@ -24,7 +24,7 @@ The core abstract interface class of the package is `MouseStreamer`. It implemen
 
 The mat folder contains a MATLAB code snippet that can be used to read the TCP streamed velocities in MATLAB, to use them to control a virtual environment with the VIRmEm software.
 
-## Time synchronization
+## Time synchronization [deprecated, old!]
 This package also include code for synching the acquisition with Arduino-generated barcodes using the system described [here](https://optogeneticsandneuralengineeringcore.gitlab.io/ONECoreSite/projects/DAQSyncronization/) from the Optogenetics and Neural Engineering (ONE) Core at the University of Colorado School of Medicine.
 
 In the future this code might be moved to an independent package.
@@ -49,3 +49,9 @@ print([dev for dev in alldevs if dev.getVendorID()==iGIdVendor])  # list ids of 
 3) At this point, with the little script `readmouse.py` we can read mouse motion! As a nice side effect, replacing the mouse drivers stops the normal functioning of the mouse for the OS.
 
 **Note:** This was done and tested with LogiTech502 mouse, and works specifically with a pair of mice of that model!
+
+
+## Run `sisyphy`
+
+### With Bonsai
+For streaming to Bonsai, we will be using ZMQ communication. You will have to run `sisyphy.streamers.zmq_streamer.py`

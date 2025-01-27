@@ -5,3 +5,4 @@ pyqtgraph
 PyQt5
 nidaqmx
 arrayqueues
+pyzmq
